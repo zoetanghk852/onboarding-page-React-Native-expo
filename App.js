@@ -1,46 +1,64 @@
+import { View, StyleSheet, Image, useWindowDimensions } from "react-native";
+import { StatusBar } from "expo-status-bar";
 import Animated, {
-  useSharedValue,
-  withTiming,
+  SensorType,
+  interpolate,
+  useAnimatedSensor,
   useAnimatedStyle,
-  Easing,
+  withTiming,
 } from "react-native-reanimated";
-import { View, Button } from "react-native";
 
-export default function AnimatedStyleUpdateExample(props) {
-  const randomWidth = useSharedValue(10);
+const IMAGE_OFFSET = 50;
+const PI = Math.PI;
+const HALF_PI = PI / 2;
 
-  const config = {
-    duration: 500,
-    easing: Easing.bezier(0.5, 0.01, 0, 1),
-  };
+export default function App() {
+  const { width, height } = useWindowDimensions();
 
-  const style = useAnimatedStyle(() => {
+  const sensor = useAnimatedSensor(SensorType.ROTATION);
+
+  const imageStyle = useAnimatedStyle(() => {
+    // yaw(up to down) , pitch(x), roll(left to right)
+
+    const { yaw, pitch, roll } = sensor.sensor.value;
+    // console.log(yaw.toFixed(1), pitch.toFixed(1), roll.toFixed(1));
     return {
-      width: withTiming(randomWidth.value, config),
+      top: withTiming(
+        interpolate(pitch, [-HALF_PI, HALF_PI], [-IMAGE_OFFSET * 2, 0]),
+        { duration: 100 }
+      ),
+      left: withTiming(interpolate(roll, [-PI, PI], [-IMAGE_OFFSET * 2, 0]), {
+        duration: 100,
+      }),
     };
   });
-
   return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-        flexDirection: "column",
-      }}
-    >
-      <Animated.View
+    <View style={styles.container}>
+      <StatusBar style="dark"></StatusBar>
+      <Animated.Image
+        source={require("./assets/bg.png")}
         style={[
-          { width: 100, height: 80, backgroundColor: "black", margin: 30 },
-          style,
+          {
+            width: width + 2 * IMAGE_OFFSET,
+            height: height + 2 * IMAGE_OFFSET,
+            position: "absolute",
+          },
+          imageStyle,
         ]}
-      />
-      <Button
-        title="toggle"
-        onPress={() => {
-          randomWidth.value = Math.random() * 350;
-        }}
       />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    // backgroundColor: "rgb(43, 43, 43)",
+  },
+  image: {
+    width: "100%",
+    height: "100%",
+  },
+});
